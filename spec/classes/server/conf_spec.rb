@@ -394,6 +394,35 @@ describe 'ssh::server::conf' do
           it { is_expected.to compile.with_all_deps }
           it { is_expected.to contain_sshd_config_subsystem('imap').with_ensure('absent') }
         end
+        context 'with global policy applied' do
+          let(:facts) { os_facts.merge( { :openssh_version => '8.0',
+                                          :simplib__crypto_policy_state => {
+                                             'global_policy' => 'mystuff',
+                                             'global_policy_applied' => true
+                                           }
+          } ) }
+          context 'with default params' do
+            it { is_expected.to contain_shellvar('CRYPTO_POLICY').with_ensure('absent') }
+          end
+          context 'with override_global_crypto_policy set' do
+            let(:params) {{
+              :override_global_crypto_policy => true
+            }}
+            it { is_expected.to contain_shellvar('CRYPTO_POLICY').with({
+              :ensure => 'present',
+              :target => '/etc/sysconfig/sshd',
+              :variable => 'CRYPTO_POLICY',
+              :value => ''
+            })}
+          end
+        end
+        context 'with no global policy applied' do
+          let(:facts) { os_facts.merge( { :openssh_version => '7.0',
+                                          :simplib__crypto_policy_state => nil
+          } ) }
+          it { is_expected.to_not contain_shellvar('CRYPTO_POLICY')}
+        end
+
       end
     end
   end

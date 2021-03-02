@@ -185,6 +185,18 @@
 #     ssh::server::conf::custom_entries:
 #       AuthorizedPrincipalsCommand: '/usr/local/bin/my_auth_command'
 #
+# @param override_global_crypto_policy
+#  On RedHat sysems that use global crypto policy, this will allow the
+#  user to override these policies by setting CRYPTO_POLICY to blank
+#  in the sysconfig file for sshd.
+#
+# @param sysconfigfile
+#  The fully qualified path to the sysconfig file for sshd
+#
+# @param crypto_policy
+#  If override_global_crypto_policy is set, this is what the value of
+#  CRYPTO_POLICY will be set to in the sysconfig file.  Leave it
+#  blank if you want to override it and just use the settings in sshd_config.
 # @param remove_entries
 #   List of configuration parameters that will be removed.
 #
@@ -299,6 +311,9 @@ class ssh::server::conf (
   Optional[Hash[String[1],NotUndef]]                     $custom_entries                  = undef,
   Optional[Array[String[1]]]                             $remove_entries                  = undef,
   Optional[Array[String[1]]]                             $remove_subsystems               = undef,
+  Stdlib::Absolutepath                                   $sysconfigfile                   = '/etc/sysconfig/sshd',
+  Boolean                                                $override_global_crypto_policy   = false,
+  String                                                 $crypto_policy                   = '',
 
 #### SIMP parameters ####
   String                                                 $app_pki_external_source         = simplib::lookup('simp_options::pki::source', { 'default_value' => '/etc/pki/simp/x509' }),
@@ -365,6 +380,26 @@ class ssh::server::conf (
       $_macs = $ssh::server::params::macs
     }
   }
+
+  if $facts['simplib__crypto_policy_state'] {
+    if $facts['simplib__crypto_policy_state']['global_policy_applied'] {
+      if $override_global_crypto_policy {
+        shellvar { 'CRYPTO_POLICY':
+          ensure   => present,
+          target   => $sysconfigfile,
+          variable => 'CRYPTO_POLICY',
+          value    => $crypto_policy
+        }
+      } else {
+        shellvar { 'CRYPTO_POLICY':
+          ensure   => absent,
+          target   => $sysconfigfile,
+          variable => 'CRYPTO_POLICY',
+        }
+      }
+    }
+  }
+
 
   $_protocol = $protocol.unique.join(',')
 
