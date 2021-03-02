@@ -539,11 +539,11 @@ class ssh::server::conf (
         simplib::assert_optional_dependency($module_name, 'simp/selinux')
         simplib::assert_optional_dependency($module_name, 'simp/vox_selinux')
 
-        include vox_selinx
+        include vox_selinux
       }
       else {
         simplib::assert_optional_dependency($module_name, 'puppet/selinux')
-        include selinx
+        include selinux
       }
 
       selinux_port { "tcp_${sel_port}-${sel_port}":
