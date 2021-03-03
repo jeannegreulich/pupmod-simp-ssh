@@ -385,16 +385,18 @@ class ssh::server::conf (
     if $facts['simplib__crypto_policy_state']['global_policy_applied'] {
       if $override_global_crypto_policy {
         shellvar { 'CRYPTO_POLICY':
-          ensure   => present,
-          target   => $sysconfigfile,
-          variable => 'CRYPTO_POLICY',
-          value    => $crypto_policy
+          ensure    => present,
+          target    => $sysconfigfile,
+          variable  => 'CRYPTO_POLICY',
+          uncomment => false,
+          value     => $crypto_policy
         }
       } else {
         shellvar { 'CRYPTO_POLICY':
           ensure   => absent,
           target   => $sysconfigfile,
           variable => 'CRYPTO_POLICY',
+          uncomment => false,
         }
       }
     }

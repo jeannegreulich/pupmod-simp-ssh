@@ -111,25 +111,27 @@ describe 'ssh class' do
         end
 
         it 'should not accept old ciphers when not enabled' do
-          if fact_on(server, 'operatingsystemmajrelease').to_s >= '8'
-            skip("Because of global cipher settings this won't work on el8.  See SIMP-9412 for details")
-          else
-            disable_fallback_hieradata = server_hieradata.merge(
-              { 'ssh::server::conf::enable_fallback_ciphers' => false }
-            )
-            set_hieradata_on(server, disable_fallback_hieradata)
-            apply_manifest_on(server, server_manifest)
+          # Remove some of the fallback ciphers from the cipher list
+          # Disable fallback ciphers
+          # Override the global crypto policy on EL8 so sshd will pick
+          # up the changes.
+          disable_fallback_hieradata = server_hieradata.merge(
+            { 'ssh::server::conf::enable_fallback_ciphers' => false,
+              'ssh::server::conf::ciphers' => [
+                 'aes256-gcm@openssh.com',
+                 'aes128-gcm@openssh.com',
+                 'aes192-ctr'
+               ],
+              'ssh::server::conf::override_global_crypto_policy' => true
+            })
+          set_hieradata_on(server, disable_fallback_hieradata)
+          apply_manifest_on(server, server_manifest)
 
-            # FIXME: This doesn't prove what it claims to.
-            #
-            # aes*-cbc aren't in the fallback ciphers, so they won't be accepted
-            # whether enable_fallback_ciphers is enabled or not
-            on(client,
-              "#{ssh_cmd} -o Ciphers=aes128-cbc,aes192-cbc,aes256-cbc echo Logged in successfully",
-              acceptable_exit_codes: [255])
+          on(client,
+            "#{ssh_cmd} -o Ciphers=aes128-ctr,aes256-ctr echo Logged in successfully",
+            acceptable_exit_codes: [255])
 
-            dump_sshd_ciphers(server,'fallback-ciphers-disabled', '`ssh::server::conf::enable_fallback_ciphers: false`')
-          end
+          dump_sshd_ciphers(server,'fallback-ciphers-disabled', '`ssh::server::conf::enable_fallback_ciphers: false`')
         end
 
         it 'should prompt user to change password if expired and logging in with cert' do

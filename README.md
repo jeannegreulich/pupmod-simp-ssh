@@ -205,6 +205,16 @@ include 'ssh::server'
 # if `ssh::enable_server: true`, this will also work
 include 'ssh'
 ```
+In EL8 the cryptographic settings in the sshd_config file will be
+overriden by the global crypto policy.  Do disable the global crypto
+policy for SSHD and use the settings in the sshd_config file set
+the following in hiera:
+
+```yaml
+---
+ssh::server::conf::override_global_crypto_policy: true
+```
+
 
 #### Managing additional server settings
 
@@ -252,7 +262,7 @@ Puppet:
 ```puppet
 include 'ssh::server'
 
-sshd_config { 
+sshd_config {
   "AllowAgentForwarding":
     ensure    => present,
     condition => "Host *.example.net",
@@ -260,7 +270,7 @@ sshd_config {
 }
 
 # Specify unique names to avoid duplicate declarations and compilation failures
-sshd_config { 
+sshd_config {
   "X11Forwarding foo":
     ensure    => present,
     keys      => "X11Forwarding",
@@ -337,7 +347,11 @@ to strong ciphers that are recommended for use.
 If you need to connect to a system that does not support these ciphers but uses
 older or weaker ciphers, you should either:
   - Manage an entry for that specific host using an additional
-    `ssh::client::host_config_entry`, or:
+    `ssh::client::host_config_entry`
+    * in EL8 if the global crypto policy is enabled on the client the target
+      entry should point to a file in ssh_config.d that comes alphabetically
+      before the default policy placed there by RedHat.
+   or:
   - Connect to the client with custom ciphers specified by the command line
     option, `ssh -c`
     * You can see a list of ciphers that your ssh client supports with `ssh -Q
